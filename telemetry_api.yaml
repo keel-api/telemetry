@@ -81,7 +81,7 @@ paths:
         default:
           $ref: "#/components/responses/ErrorResponse"
 
-  /v1/vessels/{vessel_id}/systems:
+  /v1/vessels/{vessel_imo}/systems:
     get:
       tags: [Systems]
       summary: List systems on a vessel
@@ -89,7 +89,7 @@ paths:
         Returns the systems (instances) available on a vessel. A `system_id` identifies a specific
         instance (e.g. `engine:main:1`). Use `system_id` + `signal_id` when querying telemetry.
       parameters:
-        - name: vessel_id
+        - name: vessel_imo
           in: path
           required: true
           schema:
@@ -104,7 +104,7 @@ paths:
               examples:
                 example:
                   value:
-                    vessel_id: V1
+                    vessel_imo: V1
                     systems:
                       - system_id: engine:main:1
                         system_type: ENGINE
@@ -149,10 +149,10 @@ paths:
                   start_time: "2026-02-01T00:00:00Z"
                   end_time: "2026-02-01T06:00:00Z"
                   targets:
-                    - vessel_id: V1
+                    - vessel_imo: V1
                       system_id: engine:main:1
                       signal_id: engine.rotational_speed
-                    - vessel_id: V1
+                    - vessel_imo: V1
                       system_id: engine:main:1
                       signal_id: engine.exhaust.temperature.cylinder.1
                   downsample:
@@ -172,7 +172,7 @@ paths:
                   value:
                     series:
                       - target:
-                          vessel_id: V1
+                          vessel_imo: V1
                           system_id: engine:main:1
                           signal_id: engine.rotational_speed
                         unit: rpm
@@ -192,7 +192,7 @@ paths:
       summary: Ingest canonical telemetry points (upsert)
       description: >
         Ingest telemetry using Keel's canonical conventions (system_id + signal_id).
-        Points are uniquely identified by (vessel_id, system_id, signal_id, timestamp).
+        Points are uniquely identified by (vessel_imo, system_id, signal_id, timestamp).
         If a point is ingested again with the same identity, the latest write wins (upsert).
         Keel retains historical changes internally for audit purposes.
       requestBody:
@@ -204,7 +204,7 @@ paths:
             examples:
               example:
                 value:
-                  vessel_id: V1
+                  vessel_imo: V1
                   points:
                     - timestamp: "2026-02-01T00:00:00Z"
                       system_id: engine:main:1
@@ -411,9 +411,9 @@ components:
 
     SystemListResponse:
       type: object
-      required: [vessel_id, systems]
+      required: [vessel_imo, systems]
       properties:
-        vessel_id:
+        vessel_imo:
           type: string
         systems:
           type: array
@@ -423,9 +423,9 @@ components:
     # ---------- Telemetry Query ----------
     TelemetryTarget:
       type: object
-      required: [vessel_id, signal_id]
+      required: [vessel_imo, signal_id]
       properties:
-        vessel_id:
+        vessel_imo:
           type: string
         system_id:
           type: string
@@ -561,9 +561,9 @@ components:
 
     IngestRequest:
       type: object
-      required: [vessel_id, points]
+      required: [vessel_imo, points]
       properties:
-        vessel_id:
+        vessel_imo:
           type: string
         points:
           type: array
