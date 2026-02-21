@@ -1,0 +1,634 @@
+openapi: 3.0.3
+info:
+  title: Keel Sensors Telemetry API
+  version: 0.1.0
+  description: |
+    Proposed vendor-neutral maritime telemetry API.
+    Canonical signals, consistent units, provenance, and quality flags.
+    All timestamps are UTC (RFC3339).
+
+servers:
+  - url: https://usekeel.app/sensors/api/v1
+
+tags:
+  - name: Catalog
+  - name: Telemetry
+  - name: Ingestion
+
+security:
+  - bearerAuth: []
+
+paths:
+  /vessels:
+    get:
+      tags: [Catalog]
+      summary: List vessels accessible to the caller
+      responses:
+        "200":
+          description: Vessels
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VesselListResponse"
+              examples:
+                example:
+                  value:
+                    vessels:
+                      - id: "7e8c3f71-8de7-49cc-9f8a-0603f2d2db1a"
+                        imo: 9387421
+                        name: "MV Example"
+                        fleet_id: "f1b0b0f0-1111-2222-3333-444444444444"
+
+  /vessels/{vesselId}/systems/main-engines:
+    get:
+      tags: [Catalog]
+      summary: List main engines for a vessel
+      parameters:
+        - in: path
+          name: vesselId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Engines
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EngineListResponse"
+              examples:
+                example:
+                  value:
+                    engines:
+                      - id: "2a8b6104-7a74-4c38-8d50-1f77c8e3a1ad"
+                        vessel_id: "7e8c3f71-8de7-49cc-9f8a-0603f2d2db1a"
+                        role: "MAIN_ENGINE"
+                        label: "ME1"
+                        mcr_kw: 9800
+
+  /catalog/signals:
+    get:
+      tags: [Catalog]
+      summary: List canonical signals
+      parameters:
+        - in: query
+          name: system
+          schema:
+            type: string
+            enum: [main_engine, aux_engine, boiler]
+          required: false
+        - in: query
+          name: version
+          schema:
+            type: string
+            example: "2026-02"
+          required: false
+      responses:
+        "200":
+          description: Signal catalog
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalCatalogResponse"
+              examples:
+                example:
+                  value:
+                    version: "2026-02"
+                    signals:
+                      - id: "engine.main.rpm"
+                        name: "Main Engine RPM"
+                        system: "main_engine"
+                        datatype: "number"
+                        unit: "rpm"
+                        description: "Engine crankshaft rotational speed."
+                        canonical: true
+                      - id: "engine.main.power_kw"
+                        name: "Main Engine Power"
+                        system: "main_engine"
+                        datatype: "number"
+                        unit: "kW"
+                        description: "Delivered/estimated engine power."
+                        canonical: true
+                      - id: "engine.main.load_pct_mcr"
+                        name: "Main Engine Load"
+                        system: "main_engine"
+                        datatype: "number"
+                        unit: "%"
+                        description: "Engine load as percent of MCR."
+                        canonical: true
+                      - id: "engine.main.fuel.mass_flow_kg_h"
+                        name: "Main Engine Fuel Mass Flow"
+                        system: "main_engine"
+                        datatype: "number"
+                        unit: "kg/h"
+                        description: "Fuel mass flow rate at measurement point."
+                        canonical: true
+                      - id: "engine.main.fuel.mass_consumed_kg"
+                        name: "Main Engine Fuel Consumed (Counter)"
+                        system: "main_engine"
+                        datatype: "number"
+                        unit: "kg"
+                        description: "Monotonic counter when available (preferred for totals)."
+                        canonical: true
+                      - id: "engine.main.exhaust.temp_avg_c"
+                        name: "Main Engine Exhaust Temp (Average)"
+                        system: "main_engine"
+                        datatype: "number"
+                        unit: "°C"
+                        description: "Average exhaust gas temperature."
+                        canonical: true
+                      - id: "engine.main.lube_oil.pressure_bar"
+                        name: "Lube Oil Pressure"
+                        system: "main_engine"
+                        datatype: "number"
+                        unit: "bar"
+                        description: "Lube oil pressure at main engine."
+                        canonical: true
+
+  /telemetry/timeseries:
+    post:
+      tags: [Telemetry]
+      summary: Query time-series telemetry (range query)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TimeseriesQuery"
+            examples:
+              fuel_and_power_1h_avg:
+                value:
+                  start: "2026-02-01T00:00:00Z"
+                  end: "2026-02-01T06:00:00Z"
+                  targets:
+                    - vessel_id: "7e8c3f71-8de7-49cc-9f8a-0603f2d2db1a"
+                      engine_id: "2a8b6104-7a74-4c38-8d50-1f77c8e3a1ad"
+                      signal_id: "engine.main.fuel.mass_flow_kg_h"
+                    - vessel_id: "7e8c3f71-8de7-49cc-9f8a-0603f2d2db1a"
+                      engine_id: "2a8b6104-7a74-4c38-8d50-1f77c8e3a1ad"
+                      signal_id: "engine.main.power_kw"
+                  downsample:
+                    interval: "PT1H"
+                    aggregation: "AVG"
+                  include: ["quality", "provenance", "measurement"]
+      responses:
+        "200":
+          description: Time-series response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimeseriesResponse"
+              examples:
+                example:
+                  value:
+                    series:
+                      - target:
+                          vessel_id: "7e8c3f71-8de7-49cc-9f8a-0603f2d2db1a"
+                          engine_id: "2a8b6104-7a74-4c38-8d50-1f77c8e3a1ad"
+                          signal_id: "engine.main.fuel.mass_flow_kg_h"
+                        unit: "kg/h"
+                        points:
+                          - ts: "2026-02-01T00:00:00Z"
+                            value: 1420.5
+                            quality: { status: "OK", confidence: 0.95 }
+                            provenance:
+                              provider: "kongsberg"
+                              source_asset: "/Fleet/IMO9387421/MainEngine/FuelFlow"
+                              method: "SENSOR"
+                              received_at: "2026-02-01T00:00:05Z"
+                            measurement:
+                              location: "ME_INLET"
+                              basis: "MASS"
+                              sample_period_s: 60
+                              original_unit: "kg/h"
+                              calculation_method: "DIRECT_SENSOR"
+                      - target:
+                          vessel_id: "7e8c3f71-8de7-49cc-9f8a-0603f2d2db1a"
+                          engine_id: "2a8b6104-7a74-4c38-8d50-1f77c8e3a1ad"
+                          signal_id: "engine.main.power_kw"
+                        unit: "kW"
+                        points:
+                          - ts: "2026-02-01T00:00:00Z"
+                            value: 7120.0
+                            quality: { status: "OK", confidence: 0.9 }
+                            provenance:
+                              provider: "kongsberg"
+                              source_asset: "/Fleet/IMO9387421/MainEngine/Power"
+                              method: "DERIVED"
+                              received_at: "2026-02-01T00:00:05Z"
+                            measurement:
+                              location: "ME_SHAFT"
+                              basis: "POWER"
+                              sample_period_s: 60
+                              original_unit: "kW"
+                              calculation_method: "FROM_TORQUE_METER"
+
+  /telemetry/latest:
+    post:
+      tags: [Telemetry]
+      summary: Get latest values for multiple signals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LatestQuery"
+            examples:
+              latest_fuel:
+                value:
+                  targets:
+                    - vessel_id: "7e8c3f71-8de7-49cc-9f8a-0603f2d2db1a"
+                      engine_id: "2a8b6104-7a74-4c38-8d50-1f77c8e3a1ad"
+                      signal_id: "engine.main.fuel.mass_flow_kg_h"
+      responses:
+        "200":
+          description: Latest values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LatestResponse"
+              examples:
+                example:
+                  value:
+                    values:
+                      - target:
+                          vessel_id: "7e8c3f71-8de7-49cc-9f8a-0603f2d2db1a"
+                          engine_id: "2a8b6104-7a74-4c38-8d50-1f77c8e3a1ad"
+                          signal_id: "engine.main.fuel.mass_flow_kg_h"
+                        point:
+                          ts: "2026-02-01T06:12:00Z"
+                          value: 1588.2
+                          quality: { status: "OK", confidence: 0.96 }
+                          provenance:
+                            provider: "danelec"
+                            source_asset: "collect:ME1:FuelFlow"
+                            method: "SENSOR"
+                            received_at: "2026-02-01T06:12:03Z"
+                          measurement:
+                            location: "ME_INLET"
+                            basis: "MASS"
+                            sample_period_s: 10
+                            original_unit: "kg/h"
+                            calculation_method: "DIRECT_SENSOR"
+
+  /telemetry/derived/fuel-consumption:
+    post:
+      tags: [Telemetry]
+      summary: Compute fuel consumed over a time range (derived)
+      description: |
+        Returns fuel consumed over a window. Prefers monotonic counters when available,
+        otherwise integrates fuel mass flow over time using trapezoidal integration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FuelConsumptionQuery"
+            examples:
+              me_fuel_consumed:
+                value:
+                  vessel_id: "7e8c3f71-8de7-49cc-9f8a-0603f2d2db1a"
+                  engine_id: "2a8b6104-7a74-4c38-8d50-1f77c8e3a1ad"
+                  start: "2026-02-01T00:00:00Z"
+                  end: "2026-02-01T06:00:00Z"
+      responses:
+        "200":
+          description: Fuel consumed result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FuelConsumptionResponse"
+              examples:
+                example:
+                  value:
+                    vessel_id: "7e8c3f71-8de7-49cc-9f8a-0603f2d2db1a"
+                    engine_id: "2a8b6104-7a74-4c38-8d50-1f77c8e3a1ad"
+                    start: "2026-02-01T00:00:00Z"
+                    end: "2026-02-01T06:00:00Z"
+                    fuel_consumed_kg: 8421.7
+                    method_used: "COUNTER_DELTA"
+                    inputs:
+                      - signal_id: "engine.main.fuel.mass_consumed_kg"
+                        provider: "kongsberg"
+                    quality_summary:
+                      confidence: 0.93
+                      notes: ["No gaps > 2 minutes", "Counter monotonicity OK"]
+
+  /ingest/telemetry:
+    post:
+      tags: [Ingestion]
+      summary: Ingest telemetry points (raw or normalized)
+      description: |
+        For connectors/importers. Use type=RAW for vendor tags/paths,
+        type=NORMALIZED for canonical signal_ids.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestRequest"
+            examples:
+              normalized_points:
+                value:
+                  type: "NORMALIZED"
+                  provider: "kongsberg"
+                  vessel_id: "7e8c3f71-8de7-49cc-9f8a-0603f2d2db1a"
+                  payload:
+                    - ts: "2026-02-01T00:00:00Z"
+                      engine_id: "2a8b6104-7a74-4c38-8d50-1f77c8e3a1ad"
+                      signal_id: "engine.main.fuel.mass_flow_kg_h"
+                      value: 1420.5
+                      unit: "kg/h"
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ingestion_id: { type: string, format: uuid }
+                  status: { type: string, enum: [ACCEPTED] }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    VesselListResponse:
+      type: object
+      required: [vessels]
+      properties:
+        vessels:
+          type: array
+          items: { $ref: "#/components/schemas/Vessel" }
+
+    Vessel:
+      type: object
+      required: [id, imo, name]
+      properties:
+        id: { type: string, format: uuid }
+        imo: { type: integer, example: 9387421 }
+        name: { type: string, example: "MV Example" }
+        fleet_id: { type: string, format: uuid, nullable: true }
+
+    EngineListResponse:
+      type: object
+      required: [engines]
+      properties:
+        engines:
+          type: array
+          items: { $ref: "#/components/schemas/Engine" }
+
+    Engine:
+      type: object
+      required: [id, vessel_id, role, label]
+      properties:
+        id: { type: string, format: uuid }
+        vessel_id: { type: string, format: uuid }
+        role: { type: string, enum: [MAIN_ENGINE, AUX_ENGINE] }
+        label: { type: string, example: "ME1" }
+        mcr_kw: { type: number, nullable: true, example: 9800 }
+
+    SignalCatalogResponse:
+      type: object
+      required: [version, signals]
+      properties:
+        version: { type: string }
+        signals:
+          type: array
+          items: { $ref: "#/components/schemas/SignalDefinition" }
+
+    SignalDefinition:
+      type: object
+      required: [id, name, system, datatype, unit, canonical]
+      properties:
+        id:
+          type: string
+          example: "engine.main.fuel.mass_flow_kg_h"
+          description: Stable canonical signal identifier.
+        name: { type: string }
+        system: { type: string, enum: [main_engine, aux_engine, boiler] }
+        datatype: { type: string, enum: [number, string, boolean] }
+        unit: { type: string, description: "Canonical unit." }
+        description: { type: string }
+        canonical: { type: boolean }
+        tags:
+          type: array
+          items: { type: string }
+
+    TimeseriesQuery:
+      type: object
+      required: [targets, start, end]
+      properties:
+        start: { type: string, format: date-time }
+        end: { type: string, format: date-time }
+        targets:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/SignalTarget" }
+        downsample: { $ref: "#/components/schemas/Downsample" }
+        include:
+          type: array
+          items:
+            type: string
+            enum: [quality, provenance, measurement]
+
+    SignalTarget:
+      type: object
+      required: [vessel_id, signal_id]
+      properties:
+        vessel_id: { type: string, format: uuid }
+        engine_id: { type: string, format: uuid, nullable: true }
+        signal_id:
+          type: string
+          example: "engine.main.fuel.mass_flow_kg_h"
+
+    Downsample:
+      type: object
+      properties:
+        interval:
+          type: string
+          description: ISO-8601 duration, e.g. PT1M, PT10S
+          example: "PT1M"
+        aggregation:
+          type: string
+          enum: [AVG, MIN, MAX, SUM, LAST, FIRST]
+          example: "AVG"
+
+    TimeseriesResponse:
+      type: object
+      required: [series]
+      properties:
+        series:
+          type: array
+          items: { $ref: "#/components/schemas/Series" }
+
+    Series:
+      type: object
+      required: [target, unit, points]
+      properties:
+        target: { $ref: "#/components/schemas/SignalTarget" }
+        unit: { type: string }
+        points:
+          type: array
+          items: { $ref: "#/components/schemas/Point" }
+
+    Point:
+      type: object
+      required: [ts, value]
+      properties:
+        ts: { type: string, format: date-time }
+        value: { type: number, nullable: true }
+        quality: { $ref: "#/components/schemas/Quality" }
+        provenance: { $ref: "#/components/schemas/Provenance" }
+        measurement: { $ref: "#/components/schemas/MeasurementContext" }
+
+    Quality:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [OK, MISSING, ESTIMATED, INTERPOLATED, OUTLIER_REMOVED]
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+
+    Provenance:
+      type: object
+      properties:
+        provider:
+          type: string
+          description: "Data source/provider name (e.g., kongsberg, danelec, abb)."
+        source_asset:
+          type: string
+          description: "Vendor-specific tag/path identifying the original datapoint."
+        method:
+          type: string
+          enum: [SENSOR, DERIVED, MODEL, MANUAL]
+        received_at:
+          type: string
+          format: date-time
+
+    MeasurementContext:
+      type: object
+      description: |
+        Critical context for interpreting telemetry correctly (especially fuel).
+      properties:
+        location:
+          type: string
+          enum:
+            - ME_INLET
+            - ME_RETURN
+            - ME_MIXING_TANK
+            - ME_SHAFT
+            - UNKNOWN
+        basis:
+          type: string
+          enum: [MASS, VOLUME, POWER, SPEED, TEMPERATURE, PRESSURE, UNKNOWN]
+        sample_period_s:
+          type: integer
+          nullable: true
+        original_unit:
+          type: string
+          nullable: true
+        calculation_method:
+          type: string
+          enum:
+            - DIRECT_SENSOR
+            - FROM_COUNTER
+            - FROM_TORQUE_METER
+            - FROM_POWER_CURVE
+            - MODEL_ESTIMATE
+            - UNKNOWN
+
+    LatestQuery:
+      type: object
+      required: [targets]
+      properties:
+        targets:
+          type: array
+          items: { $ref: "#/components/schemas/SignalTarget" }
+
+    LatestResponse:
+      type: object
+      required: [values]
+      properties:
+        values:
+          type: array
+          items:
+            type: object
+            required: [target, point]
+            properties:
+              target: { $ref: "#/components/schemas/SignalTarget" }
+              point: { $ref: "#/components/schemas/Point" }
+
+    FuelConsumptionQuery:
+      type: object
+      required: [vessel_id, engine_id, start, end]
+      properties:
+        vessel_id: { type: string, format: uuid }
+        engine_id: { type: string, format: uuid }
+        start: { type: string, format: date-time }
+        end: { type: string, format: date-time }
+        prefer_counter:
+          type: boolean
+          default: true
+          description: "Prefer monotonic counter deltas over integrating flow rate."
+
+    FuelConsumptionResponse:
+      type: object
+      required: [vessel_id, engine_id, start, end, fuel_consumed_kg, method_used]
+      properties:
+        vessel_id: { type: string, format: uuid }
+        engine_id: { type: string, format: uuid }
+        start: { type: string, format: date-time }
+        end: { type: string, format: date-time }
+        fuel_consumed_kg: { type: number }
+        method_used:
+          type: string
+          enum: [COUNTER_DELTA, INTEGRATE_FLOW]
+        inputs:
+          type: array
+          items:
+            type: object
+            properties:
+              signal_id: { type: string }
+              provider: { type: string }
+        quality_summary:
+          type: object
+          properties:
+            confidence: { type: number, minimum: 0, maximum: 1 }
+            notes:
+              type: array
+              items: { type: string }
+
+    IngestRequest:
+      type: object
+      required: [type, provider, vessel_id, payload]
+      properties:
+        type: { type: string, enum: [RAW, NORMALIZED] }
+        provider: { type: string, example: "kongsberg" }
+        vessel_id: { type: string, format: uuid }
+        payload:
+          type: array
+          items: { $ref: "#/components/schemas/IngestPoint" }
+
+    IngestPoint:
+      type: object
+      required: [ts, signal_id]
+      properties:
+        ts: { type: string, format: date-time }
+        engine_id: { type: string, format: uuid, nullable: true }
+        signal_id:
+          type: string
+          description: "Canonical signal_id if NORMALIZED; vendor tag/path if RAW."
+        value: { type: number, nullable: true }
+        unit: { type: string, nullable: true }
+        raw:
+          type: object
+          nullable: true
+          additionalProperties: true
