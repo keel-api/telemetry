@@ -17,27 +17,24 @@ info:
 
     ## Versioning
     This API follows semantic versioning. Breaking changes occur only on major version bumps.
-externalDocs:
-  description: Telemetry API overview (concepts + quickstart)
-  url: https://www.usekeel.app/telemetry-api
 servers:
 - url: https://api.usekeel.app
 tags:
-- name: Getting Started
-  description: |
-    The fastest path to value:
-    1) List systems on a vessel
-    2) Browse the canonical signal catalog
-    3) Query time series
-    4) Check limits
-- name: Catalog
-  description: Canonical signal catalog (quantities, units, and dimensions).
-- name: Systems
-  description: Vessel-specific system instances (e.g. `engine:main:1`).
-- name: Telemetry
-  description: Query and ingest canonical telemetry.
-- name: Limits
-  description: Hard limits and capability flags.
+  - name: Getting Started
+    description: |
+      The fastest path to value:
+      1) List systems on a vessel
+      2) Browse the canonical signal catalog
+      3) Query time series
+      4) Check limits
+  - name: Catalog
+    description: Canonical signal catalog (quantities, units, and dimensions).
+  - name: Systems
+    description: Vessel-specific system instances (e.g. `engine:main:1`).
+  - name: Telemetry
+    description: Query and ingest canonical telemetry.
+  - name: Limits
+    description: Hard limits and capability flags.
 paths:
   /v1/signals:
     get:
