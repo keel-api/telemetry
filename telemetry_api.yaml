@@ -70,7 +70,7 @@ paths:
               examples:
                 signals:
                   $ref: '#/components/examples/SignalListExample'
-        default:
+        error:
           $ref: '#/components/responses/ErrorResponse'
       x-codeSamples:
       - lang: curl
@@ -131,7 +131,7 @@ paths:
               examples:
                 systems:
                   $ref: '#/components/examples/SystemListExample'
-        default:
+        error:
           $ref: '#/components/responses/ErrorResponse'
       x-codeSamples:
       - lang: curl
@@ -203,7 +203,7 @@ paths:
               examples:
                 timeseries:
                   $ref: '#/components/examples/TimeseriesQueryResponseExample'
-        default:
+        error:
           $ref: '#/components/responses/ErrorResponse'
       x-codeSamples:
       - lang: curl
@@ -341,7 +341,7 @@ paths:
               examples:
                 ingestOk:
                   $ref: '#/components/examples/IngestResponseExample'
-        default:
+        error:
           $ref: '#/components/responses/ErrorResponse'
       x-codeSamples:
       - lang: curl
@@ -455,7 +455,7 @@ paths:
               examples:
                 limits:
                   $ref: '#/components/examples/LimitsExample'
-        default:
+        error:
           $ref: '#/components/responses/ErrorResponse'
       x-codeSamples:
       - lang: curl
