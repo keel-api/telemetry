@@ -1,5 +1,4 @@
 openapi: 3.0.3
-
 info:
   title: Keel Telemetry API
   version: 0.1.0
@@ -18,36 +17,34 @@ info:
 
     ## Versioning
     This API follows semantic versioning. Breaking changes occur only on major version bumps.
-
 externalDocs:
   description: Telemetry API overview (concepts + quickstart)
   url: https://www.usekeel.app/telemetry-api
-
 servers:
-  - url: https://api.usekeel.app
-
+- url: https://api.usekeel.app
 tags:
-  - name: Getting Started
-    description: |
-      The fastest path to value:
-      1) List systems on a vessel
-      2) Browse the canonical signal catalog
-      3) Query time series
-      4) Check limits
-  - name: Catalog
-    description: Canonical signal catalog (quantities, units, and dimensions).
-  - name: Systems
-    description: Vessel-specific system instances (e.g. `engine:main:1`).
-  - name: Telemetry
-    description: Query and ingest canonical telemetry.
-  - name: Limits
-    description: Hard limits and capability flags.
-
+- name: Getting Started
+  description: |
+    The fastest path to value:
+    1) List systems on a vessel
+    2) Browse the canonical signal catalog
+    3) Query time series
+    4) Check limits
+- name: Catalog
+  description: Canonical signal catalog (quantities, units, and dimensions).
+- name: Systems
+  description: Vessel-specific system instances (e.g. `engine:main:1`).
+- name: Telemetry
+  description: Query and ingest canonical telemetry.
+- name: Limits
+  description: Hard limits and capability flags.
 paths:
   /v1/signals:
     get:
       operationId: listSignals
-      tags: [Getting Started, Catalog]
+      tags:
+      - Getting Started
+      - Catalog
       summary: List canonical signals
       description: |
         Returns the global canonical signal catalog.
@@ -61,29 +58,60 @@ paths:
         - Use `prefix` to filter by domain (e.g. `engine.` or `vessel.`).
 
         **Indexed signals**
-        - Indexed signals are expressed as templates with dimensions, e.g.:
-          `engine.exhaust.temperature.cylinder.{cylinder}`.
+        - Indexed signals are expressed as templates with dimensions, e.g.: `engine.exhaust.temperature.cylinder.{cylinder}`.
       parameters:
-        - $ref: "#/components/parameters/Prefix"
-        - $ref: "#/components/parameters/Limit"
-        - $ref: "#/components/parameters/Cursor"
+      - $ref: '#/components/parameters/Prefix'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
       responses:
-        "200":
+        '200':
           description: A list of canonical signals
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SignalListResponse"
+                $ref: '#/components/schemas/SignalListResponse'
               examples:
                 signals:
-                  $ref: "#/components/examples/SignalListExample"
+                  $ref: '#/components/examples/SignalListExample'
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: '#/components/responses/ErrorResponse'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: |
+          curl "https://api.usekeel.app/v1/signals?prefix=engine.&limit=5" \
+            -H "Authorization: Bearer {{KEEL_API_KEY}}"
+      - lang: Python
+        label: Python (requests)
+        source: |
+          import requests
 
+          url = "https://api.usekeel.app/v1/signals"
+          params = {"prefix": "engine.", "limit": 5}
+          headers = {"Authorization": "Bearer {{KEEL_API_KEY}}"}
+
+          r = requests.get(url, params=params, headers=headers, timeout=30)
+          r.raise_for_status()
+          print(r.json())
+      - lang: JavaScript
+        label: JavaScript (fetch)
+        source: |
+          const url = new URL("https://api.usekeel.app/v1/signals");
+          url.searchParams.set("prefix", "engine.");
+          url.searchParams.set("limit", "5");
+
+          const res = await fetch(url, {
+            headers: { "Authorization": `Bearer ${process.env.KEEL_API_KEY}` },
+          });
+
+          if (!res.ok) throw new Error(await res.text());
+          console.log(await res.json());
   /v1/vessels/{vessel_imo}/systems:
     get:
       operationId: listVesselSystems
-      tags: [Getting Started, Systems]
+      tags:
+      - Getting Started
+      - Systems
       summary: List systems on a vessel
       description: |
         Returns the systems (equipment instances) available on a vessel.
@@ -95,24 +123,51 @@ paths:
 
         Use `system_id` + `signal_id` when querying telemetry time series.
       parameters:
-        - $ref: "#/components/parameters/VesselImoPath"
+      - $ref: '#/components/parameters/VesselImoPath'
       responses:
-        "200":
+        '200':
           description: Systems for the vessel
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SystemListResponse"
+                $ref: '#/components/schemas/SystemListResponse'
               examples:
                 systems:
-                  $ref: "#/components/examples/SystemListExample"
+                  $ref: '#/components/examples/SystemListExample'
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: '#/components/responses/ErrorResponse'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: |
+          curl "https://api.usekeel.app/v1/vessels/98XXXXX/systems" \
+            -H "Authorization: Bearer {{KEEL_API_KEY}}"
+      - lang: Python
+        label: Python (requests)
+        source: |
+          import requests
 
+          url = "https://api.usekeel.app/v1/vessels/98XXXXX/systems"
+          headers = {"Authorization": "Bearer {{KEEL_API_KEY}}"}
+
+          r = requests.get(url, headers=headers, timeout=30)
+          r.raise_for_status()
+          print(r.json())
+      - lang: JavaScript
+        label: JavaScript (fetch)
+        source: |
+          const res = await fetch("https://api.usekeel.app/v1/vessels/98XXXXX/systems", {
+            headers: { "Authorization": `Bearer ${process.env.KEEL_API_KEY}` },
+          });
+
+          if (!res.ok) throw new Error(await res.text());
+          console.log(await res.json());
   /v1/telemetry/timeseries:
     post:
       operationId: queryTimeseries
-      tags: [Getting Started, Telemetry]
+      tags:
+      - Getting Started
+      - Telemetry
       summary: Query telemetry time series
       description: |
         Query one or more canonical telemetry series for a time range.
@@ -137,32 +192,134 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TimeseriesQueryRequest"
+              $ref: '#/components/schemas/TimeseriesQueryRequest'
             examples:
               queryRpm:
-                $ref: "#/components/examples/TimeseriesQueryExample"
+                $ref: '#/components/examples/TimeseriesQueryExample'
       responses:
-        "200":
+        '200':
           description: Time series for requested targets
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TimeseriesQueryResponse"
+                $ref: '#/components/schemas/TimeseriesQueryResponse'
               examples:
                 timeseries:
-                  $ref: "#/components/examples/TimeseriesQueryResponseExample"
+                  $ref: '#/components/examples/TimeseriesQueryResponseExample'
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: '#/components/responses/ErrorResponse'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: |
+          curl -X POST "https://api.usekeel.app/v1/telemetry/timeseries" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer {{KEEL_API_KEY}}" \
+            -d '{
+              "start_time": "2026-02-01T00:00:00Z",
+              "end_time": "2026-02-01T06:00:00Z",
+              "targets": [
+                {
+                  "vessel_imo": "98XXXXX",
+                  "system_id": "engine:main:1",
+                  "signal_id": "engine.rotational_speed"
+                },
+                {
+                  "vessel_imo": "98XXXXX",
+                  "system_id": "engine:main:1",
+                  "signal_id": "engine.exhaust.temperature.cylinder.1"
+                }
+              ],
+              "downsample": { "interval": "PT1M" },
+              "units": {
+                "engine.exhaust.temperature.cylinder.1": "Cel"
+              },
+              "include": ["provenance"]
+            }'
+      - lang: Python
+        label: Python (requests)
+        source: |
+          import requests
 
+          url = "https://api.usekeel.app/v1/telemetry/timeseries"
+          headers = {
+            "Authorization": "Bearer {{KEEL_API_KEY}}",
+            "Content-Type": "application/json",
+          }
+          payload = {
+            "start_time": "2026-02-01T00:00:00Z",
+            "end_time": "2026-02-01T06:00:00Z",
+            "targets": [
+              {
+                "vessel_imo": "98XXXXX",
+                "system_id": "engine:main:1",
+                "signal_id": "engine.rotational_speed",
+              },
+              {
+                "vessel_imo": "98XXXXX",
+                "system_id": "engine:main:1",
+                "signal_id": "engine.exhaust.temperature.cylinder.1",
+              },
+            ],
+            "downsample": {"interval": "PT1M"},
+            "units": {
+              "engine.exhaust.temperature.cylinder.1": "Cel",
+            },
+            "include": ["provenance"],
+          }
+
+          r = requests.post(url, json=payload, headers=headers, timeout=30)
+          r.raise_for_status()
+          print(r.json())
+      - lang: JavaScript
+        label: JavaScript (fetch)
+        source: |
+          const url = "https://api.usekeel.app/v1/telemetry/timeseries";
+
+          const payload = {
+            start_time: "2026-02-01T00:00:00Z",
+            end_time: "2026-02-01T06:00:00Z",
+            targets: [
+              {
+                vessel_imo: "98XXXXX",
+                system_id: "engine:main:1",
+                signal_id: "engine.rotational_speed",
+              },
+              {
+                vessel_imo: "98XXXXX",
+                system_id: "engine:main:1",
+                signal_id: "engine.exhaust.temperature.cylinder.1",
+              },
+            ],
+            downsample: { interval: "PT1M" },
+            units: {
+              "engine.exhaust.temperature.cylinder.1": "Cel",
+            },
+            include: ["provenance"],
+          };
+
+          const res = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${process.env.KEEL_API_KEY}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) throw new Error(await res.text());
+          console.log(await res.json());
   /v1/telemetry/ingest:
     post:
       operationId: ingestTelemetry
-      tags: [Telemetry]
+      tags:
+      - Telemetry
       summary: Ingest canonical telemetry points (upsert)
       description: |
         Ingest telemetry using Keel's canonical conventions (`system_id` + `signal_id`).
 
         Telemetry points are uniquely identified by:
+
         **(vessel_imo, system_id, signal_id, timestamp)**
 
         **Upsert semantics**
@@ -173,27 +330,117 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/IngestRequest"
+              $ref: '#/components/schemas/IngestRequest'
             examples:
               ingest:
-                $ref: "#/components/examples/IngestRequestExample"
+                $ref: '#/components/examples/IngestRequestExample'
       responses:
-        "200":
+        '200':
           description: Ingestion acceptance summary
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/IngestResponse"
+                $ref: '#/components/schemas/IngestResponse'
               examples:
                 ingestOk:
-                  $ref: "#/components/examples/IngestResponseExample"
+                  $ref: '#/components/examples/IngestResponseExample'
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: '#/components/responses/ErrorResponse'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: |
+          curl -X POST "https://api.usekeel.app/v1/telemetry/ingest" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer {{KEEL_API_KEY}}" \
+            -d '{
+              "vessel_imo": "98XXXXX",
+              "points": [
+                {
+                  "timestamp": "2026-02-01T00:00:00Z",
+                  "system_id": "engine:main:1",
+                  "signal_id": "engine.rotational_speed",
+                  "value": 650
+                },
+                {
+                  "timestamp": "2026-02-01T00:00:00Z",
+                  "system_id": "engine:main:1",
+                  "signal_id": "engine.exhaust.temperature.cylinder.1",
+                  "value": 410.2
+                }
+              ]
+            }'
+      - lang: Python
+        label: Python (requests)
+        source: |
+          import requests
 
+          url = "https://api.usekeel.app/v1/telemetry/ingest"
+          headers = {
+            "Authorization": "Bearer {{KEEL_API_KEY}}",
+            "Content-Type": "application/json",
+          }
+          payload = {
+            "vessel_imo": "98XXXXX",
+            "points": [
+              {
+                "timestamp": "2026-02-01T00:00:00Z",
+                "system_id": "engine:main:1",
+                "signal_id": "engine.rotational_speed",
+                "value": 650,
+              },
+              {
+                "timestamp": "2026-02-01T00:00:00Z",
+                "system_id": "engine:main:1",
+                "signal_id": "engine.exhaust.temperature.cylinder.1",
+                "value": 410.2,
+              },
+            ],
+          }
+
+          r = requests.post(url, json=payload, headers=headers, timeout=30)
+          r.raise_for_status()
+          print(r.json())
+      - lang: JavaScript
+        label: JavaScript (fetch)
+        source: |
+          const url = "https://api.usekeel.app/v1/telemetry/ingest";
+
+          const payload = {
+            vessel_imo: "98XXXXX",
+            points: [
+              {
+                timestamp: "2026-02-01T00:00:00Z",
+                system_id: "engine:main:1",
+                signal_id: "engine.rotational_speed",
+                value: 650,
+              },
+              {
+                timestamp: "2026-02-01T00:00:00Z",
+                system_id: "engine:main:1",
+                signal_id: "engine.exhaust.temperature.cylinder.1",
+                value: 410.2,
+              },
+            ],
+          };
+
+          const res = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${process.env.KEEL_API_KEY}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!res.ok) throw new Error(await res.text());
+          console.log(await res.json());
   /v1/limits:
     get:
       operationId: getLimits
-      tags: [Getting Started, Limits]
+      tags:
+      - Getting Started
+      - Limits
       summary: Get API limits and capabilities
       description: |
         Returns hard limits and capability flags so clients can adapt without hardcoding.
@@ -202,18 +449,43 @@ paths:
         - Understand request and response bounds
         - Detect supported features (e.g., downsampling)
       responses:
-        "200":
+        '200':
           description: Limits and capability flags
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/LimitsResponse"
+                $ref: '#/components/schemas/LimitsResponse'
               examples:
                 limits:
-                  $ref: "#/components/examples/LimitsExample"
+                  $ref: '#/components/examples/LimitsExample'
         default:
-          $ref: "#/components/responses/ErrorResponse"
+          $ref: '#/components/responses/ErrorResponse'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: |
+          curl "https://api.usekeel.app/v1/limits" \
+            -H "Authorization: Bearer {{KEEL_API_KEY}}"
+      - lang: Python
+        label: Python (requests)
+        source: |
+          import requests
 
+          url = "https://api.usekeel.app/v1/limits"
+          headers = {"Authorization": "Bearer {{KEEL_API_KEY}}"}
+
+          r = requests.get(url, headers=headers, timeout=30)
+          r.raise_for_status()
+          print(r.json())
+      - lang: JavaScript
+        label: JavaScript (fetch)
+        source: |
+          const res = await fetch("https://api.usekeel.app/v1/limits", {
+            headers: { "Authorization": `Bearer ${process.env.KEEL_API_KEY}` },
+          });
+
+          if (!res.ok) throw new Error(await res.text());
+          console.log(await res.json());
 components:
   parameters:
     VesselImoPath:
@@ -222,12 +494,12 @@ components:
       required: true
       description: |
         IMO number of the vessel (7 digits), provided as a string.
+
         Example: `98XXXXX`
       schema:
         type: string
-        pattern: "^[0-9X]{7}$"
-      example: "98XXXXX"
-
+        pattern: ^[0-9X]{7}$
+      example: 98XXXXX
     Prefix:
       name: prefix
       in: query
@@ -235,8 +507,7 @@ components:
       description: Only return signals whose `signal_id` starts with this prefix.
       schema:
         type: string
-      example: "engine."
-
+      example: engine.
     Limit:
       name: limit
       in: query
@@ -247,7 +518,6 @@ components:
         maximum: 5000
         default: 500
       description: Maximum number of records to return.
-
     Cursor:
       name: cursor
       in: query
@@ -255,115 +525,115 @@ components:
       schema:
         type: string
       description: Optional cursor for pagination (implementation-defined).
-
   responses:
     ErrorResponse:
       description: Structured error response
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: '#/components/schemas/Error'
           examples:
             tooManyPoints:
-              $ref: "#/components/examples/ErrorTooManyPoints"
-
+              $ref: '#/components/examples/ErrorTooManyPoints'
   examples:
     SignalListExample:
       summary: Example signal catalog subset
       value:
         signals:
-          - signal_id: engine.rotational_speed
-            description: Engine crankshaft rotational speed.
-            quantity: rotational_speed
-            default_unit: rpm
-            allowed_units: [rpm]
-            scope:
-              requires_system: true
-              applicable_system_types: [ENGINE]
-          - signal_id: engine.exhaust.temperature.cylinder.{cylinder}
-            description: Exhaust gas temperature at cylinder outlet.
-            quantity: temperature
-            default_unit: Cel
-            allowed_units: [Cel, "[degF]", K]
-            scope:
-              requires_system: true
-              applicable_system_types: [ENGINE]
-            dimensions:
-              cylinder:
-                type: integer
-                minimum: 1
-                maximum_from_system_metadata: cylinder_count
+        - signal_id: engine.rotational_speed
+          description: Engine crankshaft rotational speed.
+          quantity: rotational_speed
+          default_unit: rpm
+          allowed_units:
+          - rpm
+          scope:
+            requires_system: true
+            applicable_system_types:
+            - ENGINE
+        - signal_id: engine.exhaust.temperature.cylinder.{cylinder}
+          description: Exhaust gas temperature at cylinder outlet.
+          quantity: temperature
+          default_unit: Cel
+          allowed_units:
+          - Cel
+          - '[degF]'
+          - K
+          scope:
+            requires_system: true
+            applicable_system_types:
+            - ENGINE
+          dimensions:
+            cylinder:
+              type: integer
+              minimum: 1
+              maximum_from_system_metadata: cylinder_count
         next_cursor: null
-
     SystemListExample:
       summary: Example vessel systems
       value:
-        vessel_imo: "98XXXXX"
+        vessel_imo: 98XXXXX
         systems:
-          - system_id: engine:main:1
-            system_type: ENGINE
-            role: MAIN
-            label: ME1
-            metadata:
-              cylinder_count: 6
-              mcr_kw: 9800
-          - system_id: engine:gen:1
-            system_type: ENGINE
-            role: GENERATOR
-            label: DG1
-            metadata: {}
-
+        - system_id: engine:main:1
+          system_type: ENGINE
+          role: MAIN
+          label: ME1
+          metadata:
+            cylinder_count: 6
+            mcr_kw: 9800
+        - system_id: engine:gen:1
+          system_type: ENGINE
+          role: GENERATOR
+          label: DG1
+          metadata: {}
     TimeseriesQueryExample:
       summary: Query main engine RPM at 1-minute resolution
       value:
-        start_time: "2026-02-01T00:00:00Z"
-        end_time: "2026-02-01T06:00:00Z"
+        start_time: '2026-02-01T00:00:00Z'
+        end_time: '2026-02-01T06:00:00Z'
         targets:
-          - vessel_imo: "98XXXXX"
-            system_id: engine:main:1
-            signal_id: engine.rotational_speed
+        - vessel_imo: 98XXXXX
+          system_id: engine:main:1
+          signal_id: engine.rotational_speed
         downsample:
           interval: PT1M
-        include: [provenance]
-
+        include:
+        - provenance
     TimeseriesQueryResponseExample:
       summary: Example time series response
       value:
         series:
-          - target:
-              vessel_imo: "98XXXXX"
-              system_id: engine:main:1
-              signal_id: engine.rotational_speed
-            quantity: rotational_speed
-            unit: rpm
-            points:
-              - timestamp: "2026-02-01T00:00:00Z"
-                value: 645
-                provenance:
-                  provider: ams
-                  raw_tag: ME_RPM
-                  mapping_version: 3
-              - timestamp: "2026-02-01T00:01:00Z"
-                value: 650
-                provenance:
-                  provider: ams
-                  raw_tag: ME_RPM
-                  mapping_version: 3
-
+        - target:
+            vessel_imo: 98XXXXX
+            system_id: engine:main:1
+            signal_id: engine.rotational_speed
+          quantity: rotational_speed
+          unit: rpm
+          points:
+          - timestamp: '2026-02-01T00:00:00Z'
+            value: 645
+            provenance:
+              provider: ams
+              raw_tag: ME_RPM
+              mapping_version: 3
+          - timestamp: '2026-02-01T00:01:00Z'
+            value: 650
+            provenance:
+              provider: ams
+              raw_tag: ME_RPM
+              mapping_version: 3
     IngestRequestExample:
       summary: Ingest canonical telemetry (upsert)
       value:
-        vessel_imo: "98XXXXX"
+        vessel_imo: 98XXXXX
         points:
-          - timestamp: "2026-02-01T00:00:00Z"
-            system_id: engine:main:1
-            signal_id: engine.rotational_speed
-            value: 650
-          - timestamp: "2026-02-01T00:00:00Z"
-            system_id: engine:main:1
-            signal_id: engine.exhaust.temperature.cylinder.1
-            value: 410.2
-
+        - timestamp: '2026-02-01T00:00:00Z'
+          system_id: engine:main:1
+          signal_id: engine.rotational_speed
+          value: 650
+        - timestamp: '2026-02-01T00:00:00Z'
+          system_id: engine:main:1
+          signal_id: engine.exhaust.temperature.cylinder.1
+          value: 410.2
     IngestResponseExample:
       summary: Example ingest response
       value:
@@ -372,7 +642,6 @@ components:
         updated: 0
         rejected: 0
         errors: []
-
     LimitsExample:
       summary: Example limits response
       value:
@@ -385,7 +654,6 @@ components:
             supported: true
             aggregation_supported: false
             bucket_alignment: UTC
-
     ErrorTooManyPoints:
       summary: Too many points requested
       value:
@@ -394,12 +662,12 @@ components:
         details:
           max_points_per_series: 10000
           suggested_downsample_interval: PT5M
-
   schemas:
-    # ---------- Common ----------
     Error:
       type: object
-      required: [error_code, message]
+      required:
+      - error_code
+      - message
       properties:
         error_code:
           type: string
@@ -409,24 +677,23 @@ components:
         details:
           type: object
           additionalProperties: true
-
     Quantity:
       type: string
       description: A small taxonomy of physical quantity categories.
       enum:
-        - temperature
-        - pressure
-        - rotational_speed
-        - length
-        - boolean_state
-        - vibration
-        - power
-        - mass_flow
-        - volume_flow
-
+      - temperature
+      - pressure
+      - rotational_speed
+      - length
+      - boolean_state
+      - vibration
+      - power
+      - mass_flow
+      - volume_flow
     SignalScope:
       type: object
-      required: [requires_system]
+      required:
+      - requires_system
       properties:
         requires_system:
           type: boolean
@@ -436,7 +703,6 @@ components:
           items:
             type: string
           description: Optional list of system types this signal applies to (e.g. ENGINE).
-
     DimensionDefinitionMap:
       type: object
       description: Dimension definitions keyed by dimension name.
@@ -445,7 +711,8 @@ components:
         properties:
           type:
             type: string
-            enum: [integer]
+            enum:
+            - integer
           minimum:
             type: integer
           maximum:
@@ -453,24 +720,25 @@ components:
           maximum_from_system_metadata:
             type: string
             description: |
-              If provided, indicates the max is derived from a field in the system metadata
-              (e.g. `cylinder_count`).
-
+              If provided, indicates the max is derived from a field in the system metadata (e.g. `cylinder_count`).
     SignalDefinition:
       type: object
-      required: [signal_id, description, quantity, default_unit, allowed_units, scope]
+      required:
+      - signal_id
+      - description
+      - quantity
+      - default_unit
+      - allowed_units
+      - scope
       properties:
         signal_id:
           type: string
           description: |
-            Canonical signal identifier.
-
-            Indexed signals are expressed as templates in the catalog, e.g.:
-            `engine.exhaust.temperature.cylinder.{cylinder}`
+            Canonical signal identifier. Indexed signals are expressed as templates in the catalog, e.g.: `engine.exhaust.temperature.cylinder.{cylinder}`
         description:
           type: string
         quantity:
-          $ref: "#/components/schemas/Quantity"
+          $ref: '#/components/schemas/Quantity'
         default_unit:
           type: string
           description: UCUM unit code returned when no unit override is specified.
@@ -480,45 +748,56 @@ components:
           items:
             type: string
           description: UCUM unit codes allowed to be requested.
-          example: [Cel, "[degF]", K]
+          example:
+          - Cel
+          - '[degF]'
+          - K
         scope:
-          $ref: "#/components/schemas/SignalScope"
+          $ref: '#/components/schemas/SignalScope'
         dimensions:
-          $ref: "#/components/schemas/DimensionDefinitionMap"
-
+          $ref: '#/components/schemas/DimensionDefinitionMap'
     SignalListResponse:
       type: object
-      required: [signals]
+      required:
+      - signals
       properties:
         signals:
           type: array
           items:
-            $ref: "#/components/schemas/SignalDefinition"
+            $ref: '#/components/schemas/SignalDefinition'
         next_cursor:
           type: string
           nullable: true
-
-    # ---------- Systems ----------
     SystemType:
       type: string
-      enum: [ENGINE, BOILER, SCRUBBER, OTHER]
-
+      enum:
+      - ENGINE
+      - BOILER
+      - SCRUBBER
+      - OTHER
     SystemRole:
       type: string
-      enum: [MAIN, GENERATOR, AUXILIARY, UNKNOWN]
-
+      enum:
+      - MAIN
+      - GENERATOR
+      - AUXILIARY
+      - UNKNOWN
     System:
       type: object
-      required: [system_id, system_type, label, metadata]
+      required:
+      - system_id
+      - system_type
+      - label
+      - metadata
       properties:
         system_id:
           type: string
           description: Structured system instance identifier.
           example: engine:main:1
         system_type:
-          $ref: "#/components/schemas/SystemType"
+          $ref: '#/components/schemas/SystemType'
         role:
-          $ref: "#/components/schemas/SystemRole"
+          $ref: '#/components/schemas/SystemRole'
         label:
           type: string
           example: ME1
@@ -526,34 +805,32 @@ components:
           type: object
           additionalProperties: true
           description: System metadata (e.g. `cylinder_count` for engines).
-
     SystemListResponse:
       type: object
-      required: [vessel_imo, systems]
+      required:
+      - vessel_imo
+      - systems
       properties:
         vessel_imo:
           type: string
           description: IMO number of the vessel (7 digits), provided as a string.
-          example: "98XXXXX"
+          example: 98XXXXX
         systems:
           type: array
           items:
-            $ref: "#/components/schemas/System"
-
-    # ---------- Telemetry Query ----------
+            $ref: '#/components/schemas/System'
     TelemetryTarget:
       type: object
       description: |
-        A canonical telemetry target.
-
-        Telemetry identity is:
-        **(vessel_imo, system_id, signal_id, timestamp)**.
-      required: [vessel_imo, signal_id]
+        A canonical telemetry target. Telemetry identity is: **(vessel_imo, system_id, signal_id, timestamp)**.
+      required:
+      - vessel_imo
+      - signal_id
       properties:
         vessel_imo:
           type: string
           description: IMO number of the vessel (7 digits), provided as a string.
-          example: "98XXXXX"
+          example: 98XXXXX
         system_id:
           type: string
           nullable: true
@@ -562,10 +839,8 @@ components:
         signal_id:
           type: string
           description: |
-            Concrete signal identifier used in queries (expanded indices),
-            e.g. `engine.exhaust.temperature.cylinder.1`.
+            Concrete signal identifier used in queries (expanded indices), e.g. `engine.exhaust.temperature.cylinder.1`.
           example: engine.rotational_speed
-
     Downsample:
       type: object
       description: Optional downsampling configuration.
@@ -573,23 +848,20 @@ components:
         interval:
           type: string
           description: |
-            ISO-8601 duration string defining the bucket interval.
-
-            Examples:
+            ISO-8601 duration string defining the bucket interval. Examples:
             - `PT1M` (1 minute)
             - `PT5M` (5 minutes)
             - `PT1H` (1 hour)
             - `P1D` (1 day)
-
-            Buckets are aligned to UTC boundaries. When provided, the API returns
-            at most one data point per interval bucket.
-
+            Buckets are aligned to UTC boundaries. When provided, the API returns at most one data point per interval bucket.
             Aggregation methods may be added in a future version.
           example: PT1M
-
     TimeseriesQueryRequest:
       type: object
-      required: [start_time, end_time, targets]
+      required:
+      - start_time
+      - end_time
+      - targets
       properties:
         start_time:
           type: string
@@ -601,9 +873,9 @@ components:
           type: array
           minItems: 1
           items:
-            $ref: "#/components/schemas/TelemetryTarget"
+            $ref: '#/components/schemas/TelemetryTarget'
         downsample:
-          $ref: "#/components/schemas/Downsample"
+          $ref: '#/components/schemas/Downsample'
         units:
           type: object
           description: Per-signal unit overrides (UCUM codes). Keys are signal_id strings from targets.
@@ -616,11 +888,12 @@ components:
           description: Optional extras to include per point. v0.1 supports only `provenance`.
           items:
             type: string
-            enum: [provenance]
-
+            enum:
+            - provenance
     Provenance:
       type: object
-      required: [provider]
+      required:
+      - provider
       properties:
         provider:
           type: string
@@ -634,10 +907,11 @@ components:
           type: integer
           nullable: true
           example: 3
-
     TimeseriesPoint:
       type: object
-      required: [timestamp, value]
+      required:
+      - timestamp
+      - value
       properties:
         timestamp:
           type: string
@@ -645,40 +919,44 @@ components:
         value:
           description: Telemetry value. v0.1 supports number and boolean.
           oneOf:
-            - type: number
-            - type: boolean
+          - type: number
+          - type: boolean
         provenance:
-          $ref: "#/components/schemas/Provenance"
-
+          $ref: '#/components/schemas/Provenance'
     TimeseriesSeries:
       type: object
-      required: [target, unit, points]
+      required:
+      - target
+      - unit
+      - points
       properties:
         target:
-          $ref: "#/components/schemas/TelemetryTarget"
+          $ref: '#/components/schemas/TelemetryTarget'
         quantity:
-          $ref: "#/components/schemas/Quantity"
+          $ref: '#/components/schemas/Quantity'
         unit:
           type: string
           description: UCUM unit code used in this response series.
         points:
           type: array
           items:
-            $ref: "#/components/schemas/TimeseriesPoint"
-
+            $ref: '#/components/schemas/TimeseriesPoint'
     TimeseriesQueryResponse:
       type: object
-      required: [series]
+      required:
+      - series
       properties:
         series:
           type: array
           items:
-            $ref: "#/components/schemas/TimeseriesSeries"
-
-    # ---------- Telemetry Ingest ----------
+            $ref: '#/components/schemas/TimeseriesSeries'
     IngestPoint:
       type: object
-      required: [timestamp, system_id, signal_id, value]
+      required:
+      - timestamp
+      - system_id
+      - signal_id
+      - value
       properties:
         timestamp:
           type: string
@@ -692,26 +970,29 @@ components:
           example: engine.rotational_speed
         value:
           oneOf:
-            - type: number
-            - type: boolean
-
+          - type: number
+          - type: boolean
     IngestRequest:
       type: object
-      required: [vessel_imo, points]
+      required:
+      - vessel_imo
+      - points
       properties:
         vessel_imo:
           type: string
           description: IMO number of the vessel (7 digits), provided as a string.
-          example: "98XXXXX"
+          example: 98XXXXX
         points:
           type: array
           minItems: 1
           items:
-            $ref: "#/components/schemas/IngestPoint"
-
+            $ref: '#/components/schemas/IngestPoint'
     IngestError:
       type: object
-      required: [index, error_code, message]
+      required:
+      - index
+      - error_code
+      - message
       properties:
         index:
           type: integer
@@ -723,10 +1004,14 @@ components:
         details:
           type: object
           additionalProperties: true
-
     IngestResponse:
       type: object
-      required: [accepted, inserted, updated, rejected, errors]
+      required:
+      - accepted
+      - inserted
+      - updated
+      - rejected
+      - errors
       properties:
         accepted:
           type: integer
@@ -739,12 +1024,13 @@ components:
         errors:
           type: array
           items:
-            $ref: "#/components/schemas/IngestError"
-
-    # ---------- Limits ----------
+            $ref: '#/components/schemas/IngestError'
     DownsampleCapabilities:
       type: object
-      required: [supported, aggregation_supported, bucket_alignment]
+      required:
+      - supported
+      - aggregation_supported
+      - bucket_alignment
       properties:
         supported:
           type: boolean
@@ -752,11 +1038,16 @@ components:
           type: boolean
         bucket_alignment:
           type: string
-          enum: [UTC]
-
+          enum:
+          - UTC
     TelemetryTimeseriesLimits:
       type: object
-      required: [max_targets_per_request, max_points_per_series, max_total_points_per_response, max_time_range, downsample]
+      required:
+      - max_targets_per_request
+      - max_points_per_series
+      - max_total_points_per_response
+      - max_time_range
+      - downsample
       properties:
         max_targets_per_request:
           type: integer
@@ -769,11 +1060,11 @@ components:
           description: ISO-8601 duration string representing maximum allowed query range.
           example: P90D
         downsample:
-          $ref: "#/components/schemas/DownsampleCapabilities"
-
+          $ref: '#/components/schemas/DownsampleCapabilities'
     LimitsResponse:
       type: object
-      required: [telemetry_timeseries]
+      required:
+      - telemetry_timeseries
       properties:
         telemetry_timeseries:
-          $ref: "#/components/schemas/TelemetryTimeseriesLimits"
+          $ref: '#/components/schemas/TelemetryTimeseriesLimits'
